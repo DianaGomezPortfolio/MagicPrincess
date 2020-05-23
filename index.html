@@ -1,0 +1,553 @@
+<html>
+<head>
+<title>Princess Diana</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser-ce/2.13.2/phaser.min.js"></script>
+</head>
+<body>
+<script>
+var game = new Phaser.Game(800, 608, Phaser.CANVAS, 'PRINCESS DIANA', { preload: preload, create: create, update: update });
+//CREACION DE VARIABLES
+
+//PERSONAJES
+var player;
+var witch;
+var witch2;
+var witch3;
+
+var witchlife=true;
+var witchlife2=true;
+var witchlife3=true;
+
+var facing = 'right';
+var dir = 'der';
+var jumping = false;
+
+//TECLAS DE MOVIMIENTO
+var cursors;
+var shootButton;
+
+//MUNDO
+var map;
+var layer;
+
+var coins;
+var coininter;
+
+var mountain;
+var pasto;
+
+var touch=true;
+var walking=true;
+var moving=true;
+
+var micolision= true;
+
+var bullets;
+var bulletTime = 0;
+var bullet;
+
+var apples;
+var apple;
+var appleTime=0;
+
+var apples2;
+var apple2;
+var appleTime2=0;
+
+var apples2;
+var apple2;
+var appleTime2=0;
+
+var apples3;
+var apple3;
+var appleTime3=0;
+
+var apples4;
+var apple4;
+var appleTime4=0;
+
+var win;
+var lost;
+
+var d=0;
+
+//CONTAR COLECCIONABLES
+var text;
+var colec = 0;
+var box;
+
+//Sonidos
+var collect_coin;
+
+function collectible(game){
+	var colecx = Math.floor(Math.random()*10000);
+    Phaser.Sprite.call(this, game, colecx, 510, 'coins');	
+	game.physics.arcade.enable(this);
+}
+collectible.prototype = Object.create(Phaser.Sprite.prototype);
+collectible.prototype.constructor = collectible;
+
+function preload() {
+//JUGADOR
+game.load.spritesheet('player', 'Imagenes/princess.png', 100, 192);
+//BRUJA
+game.load.spritesheet('witch', 'Imagenes/Bruja.png', 115, 135);
+
+//Mapa
+game.load.tilemap('map', 'Tilemap/princess.csv', null, Phaser.Tilemap.CSV);
+game.load.image('tiles', 'Tilemap/tilemap.png');
+
+game.load.image('background', 'Imagenes/fondo.jpg');
+game.load.image('mountain', 'Imagenes/mountain.png');
+game.load.image('pasto', 'Imagenes/pasto.png');
+
+//Monedas
+game.load.spritesheet('coin', 'Imagenes/coin.png', 32, 32); 
+
+//BALAS 
+game.load.image('bullet', 'Imagenes/bala.png'); 
+//MANZANAS
+game.load.image('apple', 'Imagenes/apple.png'); 
+
+//GANASTE Y PERDISTE
+game.load.image('win','Imagenes/win.png');
+game.load.image('lost','Imagenes/lost.png');
+
+//INTERFAZ
+game.load.image('lives','Imagenes/corazon.png');
+game.load.spritesheet('coininter', 'Imagenes/coin.png', 32, 32); 
+game.load.image('score','Imagenes/score.png');
+
+//SONIDOS
+ game.load.audio('collect_coin', 'Sounds/diamond.wav');
+}
+
+
+function create() {
+//GRAFICA DEL ESCENARIO  
+game.world.setBounds(0, 0, 800, 608);
+bg = game.add.tileSprite(0, 0, 900, 900, 'background');
+bg.fixedToCamera = true;
+
+mountain= game.add.tileSprite(-300, -400, 28400, 1080, 'mountain');
+//mountain.scale.x = 0.9; mountain.scale.y = 0.9;
+
+map = game.add.tilemap('map', 32,32);
+map.addTilesetImage('tiles');
+layer = map.createLayer(0);
+layer.resizeWorld();
+
+map.setCollisionBetween(0,20000);
+
+//SONIDOS
+ collect_coin = game.add.audio('collect_coin');
+
+//SPRITES DEL PERSONAJE PRINCIPAL
+	player = game.add.sprite(0, 0, 'player'); 
+	player.animations.add('idle_der', [0]);
+	player.animations.add('idle_iz', [1]);
+	player.animations.add('atack_der', [2]);
+	player.animations.add('atack_iz', [3]);
+	player.animations.add('jump_der', [4]);
+	player.animations.add('jump_iz', [5]);
+	player.animations.add('right', [6,7,8,9,10,11,10,9,8,7]);
+	player.animations.add('left', [12,13,14,15,16,17,16,15,14,13]);
+	player.animations.add('falling_iz',[5]);
+    player.animations.add('falling_der',[4]);
+    
+    //CONFIGURACION DEL PERSONAJE
+    game.physics.arcade.enable(player);
+    player.body.setSize(60, 192);
+    player.body.gravity.y = 300;
+    player.body.collideWorldBounds = false;
+   
+   //Witches
+   witch = game.add.sprite(1600, 0, 'witch');
+   game.physics.arcade.enable(witch);
+   witch.body.gravity.y = 500;
+   witch.body.collideWorldBounds = true ;
+   
+   witch2 = game.add.sprite(1800, 400, 'witch');
+   game.physics.arcade.enable(witch2);
+   witch2.body.gravity.y = 500;
+   witch2.body.collideWorldBounds = true ;
+   
+   /*witch3 = game.add.sprite(3000, 400, 'witch');
+   game.physics.arcade.enable(witch2);
+   witch3.body.gravity.y = 500;
+   witch3.body.collideWorldBounds = true ;
+   */
+   
+  //CONTROLES DE MOVIMIENTO
+    cursors = game.input.keyboard.createCursorKeys();
+    shootButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);  
+    
+   //CAMARA E INTERFAZ DEL USUARIO
+    game.camera.follow(player, Phaser.Camera.FOLLOW_TOPDOWN); 
+	
+	//COLECCIONABLES
+	box = game.add.sprite(9, 7, 'score'); 
+	box.fixedToCamera = true;
+	
+	coininter = game.add.sprite(20, 15, 'coininter'); 
+	coininter.fixedToCamera = true;
+	
+	text = game.add.text(4,0,"    :0",{ font :"40px V", fill: "#2d4a4f", align:"center"});
+    text.fixedToCamera= true;
+    text.cameraOffset.setTo(10,10);
+
+	//VIDAS
+	heart1 = game.add.sprite(640, 5, 'lives'); 
+	heart1.fixedToCamera = true;
+	heart1.visible = true;
+	heart2 = game.add.sprite(690, 5, 'lives'); 
+	heart2.fixedToCamera = true;
+	heart2.visible = true;
+	heart3 = game.add.sprite(740, 5, 'lives'); 
+	heart3.fixedToCamera = true;
+	heart3.visible = true;
+
+	//CREACION DE MONEDAS
+	coins = game.add.group();
+	coins.enableBody = true;
+	coins.physicsBodyType = Phaser.Physics.ARCADE;
+	
+for (var i = 0; i < 50; i++)
+    {
+        coins.create(game.world.randomX, 0, 'coin', 0);
+		coins.setAll('body.gravity.y',700);
+    }
+
+    //  Add animations to all of the coin sprites
+    coins.callAll('animations.add', 'animations', 'spin', [0, 1, 2, 3, 4, 5], 10, true);
+    coins.callAll('animations.play', 'animations', 'spin');
+	
+	//BALAS
+	bullets = game.add.group();
+    bullets.enableBody = true;
+    bullets.physicsBodyType = Phaser.Physics.ARCADE;
+	for (var i = 0; i < 200; i++)
+    {
+        var b = bullets.create(0, 0, 'bullet');
+        b.name = 'bullet' + i;
+        b.exists = false;
+        b.visible = false;
+        b.checkWorldBounds = true;
+        b.events.onOutOfBounds.add(resetBullet, this);
+    }
+	
+	//MANZANAS
+	apples = game.add.group();
+	apples.enableBody = true;
+    apples.physicsBodyType = Phaser.Physics.ARCADE;
+	
+	for (var i = 0; i < 1; i++)
+    {
+        var a = apples.create(0, 0, 'apple');
+        a.name = 'apple' + i;
+        a.exists = false;
+        a.visible = false;
+        a.checkWorldBounds = true;
+        a.events.onOutOfBounds.add(resetApple, this);
+    }
+	
+	apples2 = game.add.group();
+	apples2.enableBody = true;
+    apples2.physicsBodyType = Phaser.Physics.ARCADE;
+	
+	for (var i = 0; i < 1; i++)
+    {
+        var a2 = apples2.create(0, 0, 'apple');
+        a2.name = 'apple' + i;
+        a2.exists = false;
+        a2.visible = false;
+        a2.checkWorldBounds = true;
+        a2.events.onOutOfBounds.add(resetApple, this);
+    }
+	
+	//GANASTE
+	win= game.add.sprite(100, 100, 'win');
+	win.visible = false;
+	win.fixedToCamera = true;
+	//PERDISTE
+	lost= game.add.sprite(100, 100, 'lost');
+	lost.visible = false;
+	lost.fixedToCamera = true;
+	
+	//PASTO
+	pasto=game.add.tileSprite(-300,0,29000,608,'pasto');
+
+}	
+	
+function update () {
+
+player.body.velocity.x = 0;
+
+//GANASTE
+  if(player.body.position.x>8100){
+    win.visible = true;
+	game.paused = true;
+    }
+  
+//MUERTE POR CAIDA
+  if(player.body.position.y>950){
+     predie();
+	 console.log(d);
+    }
+
+//COLISIONES
+  game.physics.arcade.collide(player, layer);
+  game.physics.arcade.collide(witch, layer);
+  game.physics.arcade.collide(witch2, layer);
+  game.physics.arcade.collide(coins, layer);
+  game.physics.arcade.overlap(player, coins, collect, null, this);
+  game.physics.arcade.overlap(bullets, witch, shoot, null, this);
+  game.physics.arcade.overlap(bullets, witch2, shoot2, null, this);
+  game.physics.arcade.overlap(player, witch, predie, null, this);
+  game.physics.arcade.overlap(player, witch2, predie, null, this);
+  game.physics.arcade.overlap(player, apples, predie, null, this);
+  game.physics.arcade.overlap(player, apples2, predie, null, this);
+
+//BALAS  
+  if (shootButton.isDown)
+    {
+        if(dir =='der'){
+		player.animations.play('atack_der',12,true);
+		fireBullet();
+		}
+		if(dir =='iz'){
+		player.animations.play('atack_iz',12,true);
+		fireBullet();
+		}
+    }
+  
+// ANIMACION DEL PERSONAJE SEGUN DIRECCION
+
+    if (cursors.left.isDown)
+    {
+        player.body.velocity.x = -120;
+        dir = 'iz' ;
+        if (facing != 'left')
+        {
+            player.animations.play('left',12,true);
+            facing = 'left';		
+        }
+		
+		//EFECTO PARALLAX
+		mountain.position.x+=0.1;
+		pasto.position.x+=0.3;
+    }
+    else if (cursors.right.isDown)
+    {
+        player.body.velocity.x = 120;
+        dir = 'der';
+         if (facing != 'right')
+        {
+            player.animations.play('right',12,true);
+            facing = 'right';
+        }
+			//EFECTO PARALLAX
+			mountain.position.x-=0.1;
+			pasto.position.x-=0.3;
+
+    }
+//IDLE, ANIMACION DEL PERSONAJE ESTATICO
+    else
+    {
+        if (facing != 'idle')
+        {
+            if (facing == 'left')
+            {
+                player.animations.play('idle_iz',5,true);
+            }
+            else
+            {
+                player.animations.play('idle_der',5,true);
+            }
+
+            if(player.body.onFloor() && dir =='der' ){
+                player.animations.play('idle_der', 5, true);
+            }
+
+            else if(player.body.onFloor() && dir =='iz' ){
+                player.animations.play('idle_iz', 5, true);
+            }
+             
+			facing = 'idle';
+
+        }
+    }
+	//SI EL PERSONAJE ESTA EN EL PISO 
+    if(player.body.onFloor() && jumping )
+    {       
+            jumping=false;
+            if(dir =='iz')
+            {
+                player.animations.play('idle_iz', 5, true);
+            }
+             if(dir =='der' ){
+                player.animations.play('idle_der', 5, true);
+            }
+    }
+
+//CUANDO EL PERSONAJE TOCA EL PISO ESTANDO EN MOVIMIENTO
+    if(player.body.onFloor() && player.body.velocity.x !=0 )
+    { 
+            if (facing == 'left')
+            {
+                player.animations.play('left',10,true);
+            }
+            else
+            {
+                player.animations.play('right',10,true);
+            }
+    } 
+	
+//SALTO DEL PERSONAJE, SEGUN AL LADO QUE ESTE MIRANDO
+       if (cursors.up.isDown && player.body.onFloor())
+        {
+             player.body.velocity.y = -320;
+            if(dir=='der')
+            {
+                player.animations.play('jump_der',10); 
+            }
+            if(dir=='iz'){
+            player.animations.play('jump_iz',10); 
+            }
+        }
+
+ //SALTO DEL PERSONAJE, SEGUN AL LADO QUE ESTE MIRANDO
+if (cursors.up.isDown && player.body.onFloor())
+    {
+             player.body.velocity.y = -320;
+            if(dir=='der')
+            {
+                player.animations.play('jump_der',10); 
+            }
+            if(dir=='iz'){
+            player.animations.play('jump_iz',10); 
+            }
+            jumping=true;
+    }
+
+//ANIMACION DE CAIDA 
+    if(player.body.velocity.y >= 0 && jumping){
+        if(dir=='der'){
+        player.animations.play('falling_der',5,true); 
+        }
+        if(dir=='iz'){
+            player.animations.play('falling_iz',5,true); 
+        }
+    }
+	
+//MANZANAS DE LA BRUJA
+	if (game.time.now > appleTime)
+		{
+			if(witch.position.x-player.position.x<200 && witchlife==true){
+				apple = apples.getFirstExists(false);
+				if (apple)
+				{
+					apple.reset(witch.x + 0, witch.y + 50);
+					apple.body.velocity.x = -300;
+					appleTime = game.time.now + 150;
+				}
+			}
+		}	
+	if (game.time.now > appleTime2)
+    {
+		if(witch2.position.x-player.position.x<100 && witchlife2==true){
+			apple2 = apples2.getFirstExists(false);
+			if (apple2)
+			{
+				apple2.reset(witch2.x + 0, witch2.y + 50);
+				apple2.body.velocity.x = -300;
+				appleTim2e = game.time.now + 150;
+			}
+		}
+    }	
+} //
+	
+
+function collect(player, coins) {
+    colec += 1;
+    text.text="    :"+colec;
+    coins.kill();
+    collect_coin.play();
+    collect_coin.volume = 0.5;
+}
+
+function predie(){
+d+=1;
+die();
+}
+
+function die(){
+	if(d=1){
+	heart1.visible=false;
+	player.position.x=200;
+	}
+	if (d=2)
+	{
+	heart2.visible=false;
+	player.position.x=200;
+	}
+	if(d=3)
+	{
+	heart3.visible=false;
+	lost.visible = true;
+	game.paused = true;
+	}
+}
+
+function fireBullet () {
+
+    if (game.time.now > bulletTime)
+    {
+        bullet = bullets.getFirstExists(false);
+
+        if (bullet)
+        {
+            if(dir=='der'){
+			bullet.reset(player.x + 80, player.y + 60);
+            bullet.body.velocity.x = 300;
+            bulletTime = game.time.now + 150;
+			}
+
+			if(dir=='iz'){
+			bullet.reset(player.x - 5, player.y + 65);
+            bullet.body.velocity.x = -300;
+            bulletTime = game.time.now + 150;
+			}
+        }
+    }
+bullet.lifespan = 800;	
+}
+
+function resetBullet (bullet) {
+    bullet.kill();
+}
+
+function resetApple (apple) {
+    apple.kill();
+}
+
+function shoot (bullet, witch) {
+	witchlife=false;
+    bullet.kill();
+    witch.kill();
+}
+
+function shoot2 (bullet, witch2) {
+	witchlife2=false;
+    bullet.kill();
+    witch2.kill();
+}
+
+function render () {
+game.debug.bodyInfo(player, 32, 32);
+ game.debug.body(player);
+}
+	
+</script>
+</body>
+</html>
